@@ -112,9 +112,11 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent), ui(new Ui::MainWin
     });
     timerMeasurment->setInterval(250);
 
+    workerThread = new QThread(this);
+
     worker = new ReadWrite();
-    worker->moveToThread(&workerThread);
-    connect(&workerThread, &QThread::finished, worker, &QObject::deleteLater);
+    worker->moveToThread(workerThread);
+    connect(workerThread, &QThread::finished, worker, &QObject::deleteLater);
 
     connect(this, &MainWindow::requestChannel, worker, &ReadWrite::handleChannel);
     connect(worker, &ReadWrite::responseChannel, this, &MainWindow::handleChannel);
@@ -137,7 +139,7 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent), ui(new Ui::MainWin
 
     connect(worker, &ReadWrite::responseMessage, this, &MainWindow::handleMessage, Qt::BlockingQueuedConnection);
 
-    workerThread.start();
+    workerThread->start();
 }
 
 void MainWindow::handleChannel( Mode mode, Channel channel, t_channel data)
@@ -564,6 +566,16 @@ void MainWindow::onTimerWidgetFocus()
 
 MainWindow::~MainWindow()
 {
+    // Para todos os timers ativos para evitar chamadas fantasmas
+    if (timerParametersRead) timerParametersRead->stop();
+    if (timerMeasurment) timerMeasurment->stop();
+
+    // Encerra a thread de forma segura
+    if (workerThread && workerThread->isRunning()) {
+        workerThread->quit(); // Solicita a paragem do loop interno do Qt
+        workerThread->wait(); // Aguarda pacientemente que a thread termine
+    }
+
     serialPort.close();
     delete ui;
 }

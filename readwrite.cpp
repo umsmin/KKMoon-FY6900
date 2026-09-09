@@ -139,8 +139,17 @@ void ReadWrite::handlePortOpen(QString portName)
         return;
     }
 
-    for( uint n = 0; n < 10; n++ ) {
-        port->setPortName(QString("COM%1").arg(n));
+    for( uint n = 0; n < 50; n++ ) {
+
+        #if defined(Q_OS_WIN)
+            qDebug() << "Executando no Windows";
+            port->setPortName(QString("COM%1").arg(n));
+        #elif defined(Q_OS_LINUX)
+                qDebug() << "Executando no Linux";
+                port->setPortName(QString("/dev/ttyUSB%1").arg(n));
+        #else
+                qDebug() << "Outro sistema operacional";
+        #endif
         if( port->open(QSerialPort::OpenModeFlag::ReadWrite) ) {
             ProtocolRead read(port);
             QString modelName = read.systemLocalModel();
@@ -150,6 +159,7 @@ void ReadWrite::handlePortOpen(QString portName)
             emit responsePortOpen(port->portName(),modelName,modelUID,false);
         }
     }
+
     emit responsePortOpen("","","",true);
 }
 

@@ -50,8 +50,8 @@ private:
     QTimer *timerMeasurment = nullptr;
     QWidget *focusWidget = nullptr;
 
-    QThread workerThread;
-    ReadWrite *worker;
+    QThread *workerThread = nullptr;
+    ReadWrite *worker = nullptr;
 
 
 signals:
